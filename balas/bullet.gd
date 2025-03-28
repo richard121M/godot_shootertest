@@ -37,7 +37,7 @@ func _on_Timer_timeout():
 	if is_network_master():
 		rpc("destroy_bullet")
 
-func _on_bullet_area_entered(area):
+func _on_bullet_area_entered(_area):
 	pass
 	#if is_network_master():
 		#rpc("destroy_bullet")

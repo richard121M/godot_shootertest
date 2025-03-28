@@ -2,14 +2,12 @@ extends KinematicBody2D
 
 var MOVE = Vector2()
 var dire = Vector2.ZERO
-var vel = 4
 var hp = 3
-puppet var puppet_hp = 3 setget puppet_set_hp
-
+var id_player = 0
+puppet var id_player_pt = 0
 
 var bala = load("res://balas/bullet.tscn")
 var score = 0
-puppet var puppet_score = 0 setget puppet_score_set
 var cusangue = true
 
 puppet var puppet_position = Vector2(0,0) setget puppet_possitin_set
@@ -18,12 +16,10 @@ puppet var puppet_rotation = 0
 puppet var puppet_name = Network.current_player_username
 onready var tween = $Tween
 onready var sprite = $Node2D/Sprite
-var textu 
 var escala = Vector2(1,1)
-
+var textu
 puppet var puppet_sprite : PoolByteArray
 puppet var puppet_scale = Vector2(1,1)
-
 puppet var puppet_ani = 0
 
 onready var ani = $Node2D/AnimationPlayer
@@ -32,7 +28,6 @@ onready var poin = $arma/Position2D
 onready var t_shoter = $Timer_shoter
 onready var hud = $CanvasLayer
 onready var time_hit = $hit_time
-
 
 var s_data : PoolByteArray
 var dedo 
@@ -47,15 +42,12 @@ func _ready():
 		rset("puppet_sprite",s_data)
 	
 var temp = 0
-func ai():
-	rpc("processe_score")
-sync func processe_score():
-	rset("puppet_score",score)
+
 func _physics_process(delta):
 	#set_multiplayer_authority()
 	
 	if is_network_master():
-		
+		rset("id_player_pt",id_player)
 		if get_tree().get_network_connected_peers().size() != temp:
 			var s = sprite.texture.get_data()
 			rset("puppet_scale",sprite.scale)
@@ -64,7 +56,7 @@ func _physics_process(delta):
 			rset("puppet_sprite",s_data)
 			temp = get_tree().get_network_connected_peers().size()
 		hud.show()
-		$CanvasLayer/Control/Label2.text = str(score)
+		
 		$Label.text = Network.current_player_username
 		$Camera2D.current = true
 		var x_inpunt =  int(Input.is_action_pressed("ui_right"))-int(Input.is_action_pressed("ui_left"))
@@ -82,13 +74,12 @@ func _physics_process(delta):
 				rpc("shote", get_tree().get_network_unique_id())
 				cusangue = false
 				t_shoter.start()
-		move_and_slide(MOVE*100)
 		
-			
 		arma.look_at(get_global_mouse_position())
-	else:
-		hud.hide()
 		
+	else:
+		id_player = id_player_pt
+		hud.hide()
 		
 		if puppet_ani == 0:
 			ani.play("parado")
@@ -96,7 +87,7 @@ func _physics_process(delta):
 			ani.play("andar")
 		
 		if puppet_sprite != s_data:
-			print(11221212)
+			
 			var img = Image.new()
 			var err = img.load_png_from_buffer(puppet_sprite)  # Carrega a imagem dos bytes recebidos
 			if err == OK:
@@ -108,33 +99,16 @@ func _physics_process(delta):
 				sprite.texture = tex  # Aplica a textura no Sprite
 			puppet_sprite = s_data 
 		
-		
 		$Camera2D.current = false
-		sprite.modulate.r = 0.9
-		sprite.modulate.g = 0.9
-		sprite.modulate.b = 0.95
 		arma.rotation_degrees = lerp(arma.rotation_degrees,puppet_rotation,delta*10)
 		$Label.text = puppet_name
-		if not tween.is_active():
-			move_and_slide(puppet_velocity*10)
-	$CanvasLayer/Control/Label2.text = str(hp)
-	$CanvasLayer/Control/Label3.text = str(score)
+		
+	$CanvasLayer/Control/Label2.text = "vida: " + str(hp)
+	$CanvasLayer/Control/Label3.text = "pontos: " + str(Global.pontos[id_player])
+	move_and_slide(MOVE*100)
 	if hp <= 0:
 		if get_tree().is_network_server():
 			rpc("destroy")
-sync func _score_add(dam):
-	score += dam
-	
-
-
-func add_score(new_value):
-	score = new_value
-	if is_network_master():
-		rset("puppet_score",score)
-func puppet_score_set(new):
-	score = new
-	if not is_network_master():
-		puppet_score = score
 
 sync func destroy():
 	hp = 3
@@ -150,33 +124,19 @@ sync func shote(id):
 	d.playim = self
 	d.rotate_player = arma.rotation
 	d.name = "bala" + name + str(Network.network_obj_name_index) 
-	#d.dire = d.global_position.direction_to(get_global_mouse_position())
 	d.set_network_master(id)
 	Network.network_obj_name_index += 1
 
 func _on_Network_tick_rate_timeout():
-	
 	if is_network_master():
-		#rset("puppet_sprite",s_data)
 		rset_unreliable("puppet_position",global_position)
 		rset_unreliable("puppet_velocity",MOVE)
 		rset_unreliable("puppet_rotation",arma.rotation_degrees)
 		rset_unreliable("puppet_name",Network.current_player_username)
 
-
 func _on_Timer_shoter_timeout():
 	if is_network_master():
 		cusangue = true
-func set_hp(new_value):
-	hp = new_value
-	if is_network_master():
-		rset("puppet_hp",hp)
-
-func puppet_set_hp(new_value):
-	print("ddd")
-	puppet_hp = new_value
-	if not is_network_master():
-		hp = puppet_hp
 
 func _on_hit_time_timeout():
 	modulate = Color(1,1.0,1.0,1)
@@ -186,6 +146,6 @@ sync func _hit_to_damege(dam):
 	modulate = Color(1,0.8,0.8,0.9)
 	time_hit.start()
 
-func _on_hit_box_body_entered(body):
+func _on_hit_box_body_entered(_body) -> void:
 	if get_tree().is_network_server():
 		rpc("_hit_to_damege",1)

@@ -23,7 +23,7 @@ func _ready():
 		pass
 	else:
 		start_game.hide()
-func _process(delta):
+func _process(_delta):
 	if get_tree().network_peer != null:
 		if get_tree().get_network_connected_peers().size() >= 0 and get_tree().is_network_server():
 			start_game.show()
@@ -31,16 +31,19 @@ func _process(delta):
 			start_game.hide()
 
 func _on_Create_server_pressed():
-	if username.text != "":
-		Network.current_player_username = username.text
-		multiplay_config_ui.hide()
-		Network.create_server()
-		
-		Global.id_adm = get_tree().get_network_unique_id() 
-		instance_player(get_tree().get_network_unique_id())
+	#if username.text != "":
+	Network.current_player_username = username.text
+	multiplay_config_ui.hide()
+	Network.create_server()
+	set_network_master(get_tree().get_network_unique_id())
+	#	Global.id_adm = get_tree().get_network_unique_id() 
+		#instance_player(get_tree().get_network_unique_id())
 func _player_connected(id) -> void:
+	print(id)
 	print("Player"+ str(id) + " has connected")
+	print(11221212)
 	instance_player(id)
+	
 	
 func _player_disconnected(id) -> void:
 	print("Player"+ str(id) + " has disconnected")
@@ -57,10 +60,15 @@ func _on_Join_server_pressed():
 func _connected_to_server() -> void:
 	yield(get_tree().create_timer(0.1), "timeout")
 	instance_player(get_tree().get_network_unique_id())
-
+	if Players.has_node(str(1)):
+		Players.get_node(str(1)).queue_free()
+	
 func instance_player(id) -> void:
 	var player_instace = Global.instance_node_at_location(player,Players,Vector2(512/2,288/2))
 	player_instace.name = str(id)
+	player_instace.id_player = Global.pontos.size() - 1
+	Global.pontos.append(0)
+	print(Global.pontos)
 	if player_img != null:
 		print("ai calica")
 		player_instace.sprite.texture = player_img
@@ -76,10 +84,8 @@ func _on_strat_game_pressed():
 sync func swicht_to_game() -> void:
 	get_tree().change_scene("res://layer/game/game.tscn")
 
-
 func _on_img_b_pressed():
 	$background_panel/FileDialog.popup()
-
 
 func _on_FileDialog_file_selected(path):
 	var img = Image.new()

@@ -8,6 +8,7 @@ var live = 3
 var ani = 0
 var random = RandomNumberGenerator.new()
 
+
 puppet var puppet_ani = ani
 puppet var puppet_live = live
 puppet var puppet_move = move
@@ -25,6 +26,7 @@ func _ready():
 
 func _physics_process(delta):
 	if is_network_master():
+		rset("puppet_live",live)
 		var dist = Vector2(0,0)
 		for players in list_players:
 			if dist != Vector2(0,0):
@@ -83,7 +85,8 @@ func _on_Area2D_body_exited(body):
 	if body in list_players:
 		list_players.erase(body)
 
-sync func destroy():
+sync func destroy(ide):
+	Global.pontos[ide] += 1
 	queue_free()
 
 func _random_pos():
@@ -93,11 +96,20 @@ func _random_pos():
 	return pos_m
 func _on_area_hit_area_entered(area):
 	
-	live -= 1
+	#live = puppet_live
+	if is_network_master():
+		live -= 1
+		
+	else:
+		live = puppet_live
+		live -= 1
 	move = Vector2(global_position.direction_to(area.global_position)*-220)
-	rset("puppet_live",live)
+	
+	
 	if live <= 0 or puppet_live <= 0:
-		area.playim._score_add(1)
-		rpc("destroy")
-	area.rpc("destroy_bullet")
+		print(is_network_master())
+		print(area.playim.id_player)
+		rpc("destroy",area.playim.id_player)
+	if is_network_master():
+		area.rpc("destroy_bullet")
 	

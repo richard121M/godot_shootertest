@@ -1,7 +1,7 @@
 extends Node
 
 var id_adm = 0
-
+var pontos = []
 func instance_node_at_location(node:Object, parent: Object, location: Vector2) -> Object:
 	var node_instace = instance_node(node,parent)
 	node_instace.global_position = location
